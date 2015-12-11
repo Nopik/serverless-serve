@@ -147,7 +147,9 @@ module.exports = function(serverlessPath) {
                 }
                 return( part );
               });
-              SCli.log( "Route: " + endpoint.method + " " + cfPath );
+              if( process.env.DEBUG ) {
+                SCli.log( "Route: " + endpoint.method + " " + cfPath );
+              }
 
               let handlerParts = fun.handler.split('/').pop().split('.');
               let handlerPath = fun.pathFunction.replace('s-function.json', '') + handlerParts[0] + '.js';
@@ -234,7 +236,6 @@ module.exports = function(serverlessPath) {
         .then(_this._registerLambdas)
         .then(_this._listen)
         .then(function() {
-          SCli.log("Serve done.");
           return _this.evt;
         });
     }
