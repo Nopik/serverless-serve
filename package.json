@@ -16,7 +16,6 @@
   "keywords": [
     "serverless",
     "serverless plugins",
-    "serverless plugins",
     "api gateway",
     "lambda",
     "aws",
@@ -32,7 +31,6 @@
   },
   "homepage": "https://github.com/Nopik/serverless-serve#readme",
   "dependencies": {
-    "serverless": "^0.0.7",
     "bluebird": "^3.0.6",
     "body-parser": "^1.14.1",
     "express": "^4.13.3"
