@@ -1,0 +1,40 @@
+{
+  "name": "serverless-serve",
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=4.0"
+  },
+  "description": "Local lambda HTTP serve plugin for Serverless framework, a.k.a. API Gateway simulator.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nopik/serverless-serve.git"
+  },
+  "keywords": [
+    "serverless",
+    "serverless plugins",
+    "serverless plugins",
+    "api gateway",
+    "lambda",
+    "aws",
+    "aws lambda",
+    "amazon",
+    "amazon web services",
+    "serverless.com"
+  ],
+  "author": "Kamil Burzynski",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Nopik/serverless-serve/issues"
+  },
+  "homepage": "https://github.com/Nopik/serverless-serve#readme",
+  "dependencies": {
+    "serverless": "^0.0.7",
+    "bluebird": "^3.0.6",
+    "body-parser": "^1.14.1",
+    "express": "^4.13.3"
+  }
+}
