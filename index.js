@@ -1,8 +1,7 @@
 'use strict';
 
-module.exports = function(serverlessPath) {
+module.exports = function(SPlugin, serverlessPath) {
   const path = require( 'path' ),
-  SPlugin = require( path.join( serverlessPath, 'ServerlessPlugin' ) ),
   SUtils = require( path.join( serverlessPath, 'utils' ) ),
   context = require( path.join( serverlessPath, 'utils', 'context' ) ),
   SCli = require( path.join( serverlessPath, 'utils', 'cli' ) ),
@@ -11,8 +10,8 @@ module.exports = function(serverlessPath) {
   BbPromise = require( 'bluebird' );
 
   class Serve extends SPlugin {
-    constructor(S, config) {
-      super(S, config);
+    constructor(S) {
+      super(S);
     }
     static getName() {
       return 'net.nopik.' + Serve.name;
@@ -98,35 +97,35 @@ module.exports = function(serverlessPath) {
       let _this = this;
       return SUtils.getFunctions( '.' ).then( function(functions){
         functions.forEach(function(fun) {
-          //[ { custom: { excludePatterns: [], envVars: [] },
-          //  handler: 'modules/hw/hello/handler.handler',
-          //  timeout: 6,
+          //{ custom: { excludePatterns: [], envVars: [] },
+          //  handler: 'modules/hw1/hello/handler.handler',
+          //    timeout: 6,
           //  memorySize: 1024,
           //  endpoints:
-          //{ 'hw/hello':
-          //  { method: 'GET',
+          //  [ { path: 'hw1/hello',
+          //    method: 'GET',
           //    authorizationType: 'none',
           //    apiKeyRequired: false,
           //    requestParameters: {},
           //    requestTemplates: [Object],
-          //      responses: [Object] } },
-          //  pathFunction: '/Users/nopik/Documents/Projects/slspc/back/modules/hw/hello/s-function.json',
-          //  name: 'HwHello',
+          //    responses: [Object] } ],
+          //    name: 'Hw1Hello',
           //  module:
-          //  { name: 'hw',
+          //  { name: 'hw1',
           //    version: '0.0.1',
           //    profile: 'aws-0',
           //    location: 'https://github.com/...',
           //    author: '',
           //    description: '',
           //    custom: {},
-          //    cloudFormation: [Object],
-          //    runtime: 'nodejs' } } ]
+          //    cloudFormation: { lambdaIamPolicyDocumentStatements: [], resources: {} },
+          //    runtime: 'nodejs',
+          //      pathModule: 'back/modules/hw1' },
+          //  pathFunction: 'back/modules/hw1/hello' }
 
           if( fun.module.runtime == 'nodejs' ) {
-            Object.keys( fun.endpoints ).forEach(function(epath){
-              let endpoint = fun.endpoints[ epath ];
-
+            fun.endpoints.forEach(function(endpoint){
+              let epath = endpoint.path;
               let cfPath = _this.evt.prefix + epath;
 
               if( cfPath[ 0 ] != '/' ) {
@@ -152,7 +151,7 @@ module.exports = function(serverlessPath) {
               }
 
               let handlerParts = fun.handler.split('/').pop().split('.');
-              let handlerPath = fun.pathFunction.replace('s-function.json', '') + handlerParts[0] + '.js';
+              let handlerPath = path.join( _this.S._projectRootPath, fun.pathFunction, handlerParts[0] + '.js' );
               let handler;
 
               _this.app[ endpoint.method.toLocaleLowerCase() ]( cfPathParts.join('/'), function(req, res, next){
@@ -223,7 +222,7 @@ module.exports = function(serverlessPath) {
       let _this = this;
 
       if (_this.S.cli) {
-        evt = this.S.cli.options;
+        evt = JSON.parse(JSON.stringify(this.S.cli.options));
         if (_this.S.cli.options.nonInteractive) _this.S._interactive = false
       }
 
