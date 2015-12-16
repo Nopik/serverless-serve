@@ -214,7 +214,7 @@ module.exports = function(SPlugin, serverlessPath) {
       let _this = this;
 
       this.server = this.app.listen( this.evt.port, function(){
-        SCli.log( "Jaws API Gateway simulator listening on http://localhost:" + _this.evt.port );
+        SCli.log( "Serverless API Gateway simulator listening on http://localhost:" + _this.evt.port );
       });
     }
 
