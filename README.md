@@ -10,18 +10,29 @@ In your Serverless project:
 
 ```
 cd plugins
-npm install serverless-serve
+npm install --prefix=. serverless-serve
 ```
 
-then in `s-project.json` add following entry to `plugins` table:
+Then in `s-project.json` add following entry to `plugins` array:
 
 ```
-  {
-    "path": "serverless-serve"
-  }
+    {
+      "path": "serverless-serve"
+    }
 ```
 
-and do:
+E.g. like this:
+```
+  plugins: [
+    {
+      "path": "serverless-serve"
+    }
+  ]
+```
+
+Alternatively, you can install `serveress-serve` in some parent folder (e.g. your project root), and then use `{ "path": "../node_modules/serverless-serve" }` approach.
+
+And (in main project root, not in plugins or modules folder) do:
 
 ```
 sls serve start
