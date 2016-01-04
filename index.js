@@ -89,12 +89,15 @@ module.exports = function(SPlugin, serverlessPath) {
     _tryInit() {
       if( this.evt.init ){
         let handler = require( path.join( process.cwd(), this.evt.init ) );
-        return( handler( this.S, this.app ) );
+        return( handler( this.S, this.app, this.handlers ) );
       }
     }
 
     _registerLambdas() {
       let _this = this;
+
+      _this.handlers = {};
+
       return SUtils.getFunctions( '.' ).then( function(functions){
         functions.forEach(function(fun) {
           //{ custom: { excludePatterns: [], envVars: [] },
@@ -124,6 +127,16 @@ module.exports = function(SPlugin, serverlessPath) {
           //  pathFunction: 'back/modules/hw1/hello' }
 
           if( fun.module.runtime == 'nodejs' ) {
+            let handlerParts = fun.handler.split('/').pop().split('.');
+            let handlerPath = path.join( _this.S._projectRootPath, fun.pathFunction, handlerParts[0] + '.js' );
+            let handler;
+
+            _this.handlers[ fun.name ] = {
+              path: handlerPath,
+              handler: handlerParts[ 1 ],
+              definition: fun
+            };
+
             fun.endpoints.forEach(function(endpoint){
               let epath = endpoint.path;
               let cfPath = _this.evt.prefix + epath;
@@ -149,10 +162,6 @@ module.exports = function(SPlugin, serverlessPath) {
               if( process.env.DEBUG ) {
                 SCli.log( "Route: " + endpoint.method + " " + cfPath );
               }
-
-              let handlerParts = fun.handler.split('/').pop().split('.');
-              let handlerPath = path.join( _this.S._projectRootPath, fun.pathFunction, handlerParts[0] + '.js' );
-              let handler;
 
               _this.app[ endpoint.method.toLocaleLowerCase() ]( cfPathParts.join('/'), function(req, res, next){
                 SCli.log("Serving: " + endpoint.method + " " + cfPath);
@@ -231,8 +240,8 @@ module.exports = function(SPlugin, serverlessPath) {
       return this.S.validateProject()
         .bind(_this)
         .then(_this._createApp)
-        .then(_this._tryInit)
         .then(_this._registerLambdas)
+        .then(_this._tryInit)
         .then(_this._listen)
         .then(function() {
           return _this.evt;

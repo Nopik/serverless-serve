@@ -45,10 +45,23 @@ Options
 
 `--port` `-P`: Port to listen on. Default: `1465`
 
-`--init` `-i`: Initialization file, for custom initializations. Default: empty. NOTE: please specify relative paths from project root folder, e.g. `sls serve start -i ./lib/my_init.js`. Init file should export single function taking 2 parameters: `Serverless` object and `app` object from Express (e.g. to register new routes). Example:
+`--init` `-i`: Initialization file, for custom initializations. Default: empty. NOTE: please specify relative paths from project root folder, e.g. `sls serve start -i ./lib/my_init.js`. Init file should export single function taking following parameters:
+- `Serverless` object
+- `app` object from Express (e.g. to register new routes)
+- `handlers` object being map of all function names to info about their respective handlers. Since all handlers are `require`'d lazily, this plugin exports only path information about handler, in following format:
+```
+{
+  path: "path/to/be/required",
+  handler: "exported-function-name"
+}
+```
+
+so this should work: `require( handlers[ myFunName ].path )[ handlers[ myFunName ].handler ]( event, context )`
+
+Example:
 
 ```
-module.exports = function(S, app){
+module.exports = function(S, app, handlers){
 }
 ```
 
