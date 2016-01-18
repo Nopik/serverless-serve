@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = function(SPlugin, serverlessPath) {
+module.exports = function(ServerlessPlugin, serverlessPath) {
   const path = require( 'path' ),
   SUtils = require( path.join( serverlessPath, 'utils' ) ),
   context = require( path.join( serverlessPath, 'utils', 'context' ) ),
@@ -9,7 +9,7 @@ module.exports = function(SPlugin, serverlessPath) {
   bodyParser = require('body-parser'),
   BbPromise = require( 'bluebird' );
 
-  class Serve extends SPlugin {
+  class Serve extends ServerlessPlugin {
     constructor(S) {
       super(S);
     }
@@ -41,7 +41,7 @@ module.exports = function(SPlugin, serverlessPath) {
       return BbPromise.resolve();
     }
     registerHooks() {
-      return Promise.resolve();
+      return BbPromise.resolve();
     }
 
     _createApp() {
@@ -95,127 +95,126 @@ module.exports = function(SPlugin, serverlessPath) {
 
     _registerLambdas() {
       let _this = this;
+      let functions = this.S.state.getFunctions();
 
       _this.handlers = {};
 
-      return SUtils.getFunctions( '.' ).then( function(functions){
-        functions.forEach(function(fun) {
-          //{ custom: { excludePatterns: [], envVars: [] },
-          //  handler: 'modules/hw1/hello/handler.handler',
-          //    timeout: 6,
-          //  memorySize: 1024,
-          //  endpoints:
-          //  [ { path: 'hw1/hello',
-          //    method: 'GET',
-          //    authorizationType: 'none',
-          //    apiKeyRequired: false,
-          //    requestParameters: {},
-          //    requestTemplates: [Object],
-          //    responses: [Object] } ],
-          //    name: 'Hw1Hello',
-          //  module:
-          //  { name: 'hw1',
-          //    version: '0.0.1',
-          //    profile: 'aws-0',
-          //    location: 'https://github.com/...',
-          //    author: '',
-          //    description: '',
-          //    custom: {},
-          //    cloudFormation: { lambdaIamPolicyDocumentStatements: [], resources: {} },
-          //    runtime: 'nodejs',
-          //      pathModule: 'back/modules/hw1' },
-          //  pathFunction: 'back/modules/hw1/hello' }
+      return functions.forEach(function(fun) {
+        /*
+        _config:
+          { component: 'node',
+            module: 'homepage',
+            function: 'index',
+            sPath: 'node/homepage/index',
+            fullPath: '/path/to/some/serverless/project/node/homepage/index' },
+        name: 'index',
+        handler: 'homepage/index/handler.handler',
+        runtime: 'nodejs',
+        timeout: 6,
+        memorySize: 1024,
+        custom: { excludePatterns: [], envVars: [] },
+        endpoints:
+         [ ServerlessEndpoint {
+             _S: [Object],
+             _config: [Object],
+             path: 'homepage/index',
+             method: 'GET',
+             authorizationType: 'none',
+             apiKeyRequired: false,
+             requestParameters: {},
+             requestTemplates: [Object],
+             responses: [Object] } ] }
+       */
 
-          if( fun.module.runtime == 'nodejs' ) {
-            let handlerParts = fun.handler.split('/').pop().split('.');
-            let handlerPath = path.join( _this.S._projectRootPath, fun.pathFunction, handlerParts[0] + '.js' );
-            let handler;
+        if( fun.runtime == 'nodejs' ) {
+          let handlerParts = fun.handler.split('/').pop().split('.');
+          let handlerPath = path.join(fun._config.fullPath, handlerParts[0] + '.js');
+          let handler;
 
-            _this.handlers[ fun.name ] = {
-              path: handlerPath,
-              handler: handlerParts[ 1 ],
-              definition: fun
-            };
+          _this.handlers[ fun.handler ] = {
+            path: handlerPath,
+            handler: handlerParts[ 1 ],
+            definition: fun
+          };
 
-            fun.endpoints.forEach(function(endpoint){
-              let epath = endpoint.path;
-              let cfPath = _this.evt.prefix + epath;
+          fun.endpoints.forEach(function(endpoint){
+            let epath = endpoint.path;
+            let cfPath = _this.evt.prefix + epath;
 
-              if( cfPath[ 0 ] != '/' ) {
-                cfPath = '/' + cfPath;
+            if( cfPath[ 0 ] != '/' ) {
+              cfPath = '/' + cfPath;
+            }
+
+            // In worst case we have two slashes at the end (one from prefix, one from "/" lambda mount point)
+            while( (cfPath.length > 1) && (cfPath[ cfPath.length - 1 ] == '/') ){
+              cfPath = cfPath.substr( cfPath.length - 1 );
+            }
+
+            let cfPathParts = cfPath.split( '/' );
+            cfPathParts = cfPathParts.map(function(part){
+              if( part.length > 0 ) {
+                if( (part[ 0 ] == '{') && (part[ part.length - 1 ] == '}') ) {
+                  return( ":" + part.substr( 1, part.length - 2 ) );
+                }
               }
+              return( part );
+            });
+            if( process.env.DEBUG ) {
+              SCli.log( "Route: " + endpoint.method + " " + cfPath );
+            }
 
-              // In worst case we have two slashes at the end (one from prefix, one from "/" lambda mount point)
-              while( (cfPath.length > 1) && (cfPath[ cfPath.length - 1 ] == '/') ){
-                cfPath = cfPath.substr( cfPath.length - 1 );
-              }
+            _this.app[ endpoint.method.toLocaleLowerCase() ]( cfPathParts.join('/'), function(req, res, next){
+              SCli.log("Serving: " + endpoint.method + " " + cfPath);
 
-              let cfPathParts = cfPath.split( '/' );
-              cfPathParts = cfPathParts.map(function(part){
-                if( part.length > 0 ) {
-                  if( (part[ 0 ] == '{') && (part[ part.length - 1 ] == '}') ) {
-                    return( ":" + part.substr( 1, part.length - 2 ) );
+              let result = new BbPromise(function(resolve, reject) {
+
+                let event = {};
+                let prop;
+
+                for( prop in req.body ) {
+                  if( req.body.hasOwnProperty( prop ) ){
+                    event[ prop ] = req.body[ prop ];
                   }
                 }
-                return( part );
+
+                for( prop in req.params ) {
+                  if( req.params.hasOwnProperty( prop ) ){
+                    event[ prop ] = req.params[ prop ];
+                  }
+                }
+
+                for( prop in req.query ) {
+                  if( req.query.hasOwnProperty( prop ) ){
+                    event[ prop ] = req.query[ prop ];
+                  }
+                }
+
+                if( !handler ) {
+                  try {
+                    handler = require( handlerPath )[handlerParts[1]];
+                  } catch( e ) {
+                    SCli.log( "Unable to load " + handlerPath + ": " + e );
+                    throw e ;
+                  }
+                }
+                handler(event, context( fun.name, function(err, result) {
+                  if (err) {
+                    SCli.log(err);
+                    return reject(err);
+                  }
+                  resolve(result);
+                }));
               });
-              if( process.env.DEBUG ) {
-                SCli.log( "Route: " + endpoint.method + " " + cfPath );
-              }
 
-              _this.app[ endpoint.method.toLocaleLowerCase() ]( cfPathParts.join('/'), function(req, res, next){
-                SCli.log("Serving: " + endpoint.method + " " + cfPath);
-
-                let result = new BbPromise(function(resolve, reject) {
-
-                  let event = {};
-                  let prop;
-
-                  for( prop in req.body ) {
-                    if( req.body.hasOwnProperty( prop ) ){
-                      event[ prop ] = req.body[ prop ];
-                    }
-                  }
-
-                  for( prop in req.params ) {
-                    if( req.params.hasOwnProperty( prop ) ){
-                      event[ prop ] = req.params[ prop ];
-                    }
-                  }
-
-                  for( prop in req.query ) {
-                    if( req.query.hasOwnProperty( prop ) ){
-                      event[ prop ] = req.query[ prop ];
-                    }
-                  }
-
-                  if( !handler ) {
-                    try {
-                      handler = require( handlerPath )[handlerParts[1]];
-                    } catch( e ) {
-                      SCli.log( "Unable to load " + handlerPath + ": " + e );
-                      throw e ;
-                    }
-                  }
-                  handler(event, context( fun.name, function(err, result) {
-                    if (err) {
-                      SCli.log(err);
-                      return reject(err);
-                    }
-                    resolve(result);
-                  }));
-                });
-
-                result.then(function(r){
-                  res.send(r);
-                }, function(err){
-                  SCli.log(err);
-                  res.sendStatus(500);
-                });
-              } );
-            });
-          }
-        })
+              result.then(function(r){
+                res.send(r);
+              }, function(err){
+                SCli.log(err);
+                res.sendStatus(500);
+              });
+            } );
+          });
+        }
       });
     }
 
@@ -237,7 +236,7 @@ module.exports = function(SPlugin, serverlessPath) {
 
       _this.evt = evt;
 
-      return this.S.validateProject()
+      return this.S._init()
         .bind(_this)
         .then(_this._createApp)
         .then(_this._registerLambdas)
