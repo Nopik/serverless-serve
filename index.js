@@ -75,7 +75,7 @@ module.exports = function(SPlugin, serverlessPath) {
       this.app.use(bodyParser.json({ limit: '5mb' }));
 
       this.app.use( function(req, res, next){
-        res.header( 'Access-Control-Allow-Methods', 'GET,PUT,HEAD,POST,DELETE,OPTIONS' );
+        res.header( 'Access-Control-Allow-Methods', 'GET,PUT,HEAD,PATCH,POST,DELETE,OPTIONS' );
         res.header( 'Access-Control-Allow-Headers', 'Authorization,Content-Type,x-amz-date,x-amz-security-token' );
 
         if( req.method != 'OPTIONS' ) {
