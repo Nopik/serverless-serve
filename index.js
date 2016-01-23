@@ -236,7 +236,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
 
       _this.evt = evt;
 
-      return this.S._init()
+      return this.S.init()
         .bind(_this)
         .then(_this._createApp)
         .then(_this._registerLambdas)
