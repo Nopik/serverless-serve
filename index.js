@@ -198,16 +198,32 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
                   }
                 }
                 handler(event, context( fun.name, function(err, result) {
+                  let response;
+
                   if (err) {
-                    SCli.log(err);
-                    return reject(err);
+                    Object.keys(endpoint.responses).forEach(key => {
+                      if (!response && key != 'default' && JSON.stringify(err).match(key)) {
+                        response = endpoint.responses[key];
+                      };
+                    });
+
+                    result = {
+                      errorMessage: err
+                    };
                   }
-                  resolve(result);
+
+                  response = response || endpoint.responses['default'];
+
+                  resolve(Object.assign({
+                    result: result
+                  }, response));
                 }));
               });
 
               result.then(function(r){
-                res.send(r);
+                SCli.log(`[${r.statusCode}] ${JSON.stringify(r.result, null, 4)}`);
+                res.status(r.statusCode);
+                res.send(r.result);
               }, function(err){
                 SCli.log(err);
                 res.sendStatus(500);
