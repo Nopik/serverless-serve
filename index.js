@@ -126,7 +126,9 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
              responses: [Object] } ] }
        */
 
-        if( fun.runtime == 'nodejs' ) {
+        let runtime = fun.getRuntime();
+
+        if( runtime == 'nodejs' ) {
           let handlerParts = fun.handler.split('/').pop().split('.');
           let handlerPath = path.join(fun._config.fullPath, handlerParts[0] + '.js');
           let handler;
