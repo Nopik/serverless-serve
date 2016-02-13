@@ -262,7 +262,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
 
       return this.S.init()
         .bind(_this)
-        .then(_this._registrBabel)
+        .then(_this._registerBabel)
         .then(_this._createApp)
         .then(_this._registerLambdas)
         .then(_this._tryInit)
