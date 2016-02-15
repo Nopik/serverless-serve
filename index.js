@@ -79,9 +79,9 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
         res.header( 'Access-Control-Allow-Headers', 'Authorization,Content-Type,x-amz-date,x-amz-security-token' );
 
         if( req.method != 'OPTIONS' ) {
-          next()
+          next();
         } else {
-          res.status(200).end()
+          res.status(200).end();
         }
       });
     }
@@ -126,7 +126,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
              responses: [Object] } ] }
        */
 
-        if( fun.runtime == 'nodejs' ) {
+        if( fun.getRuntime() == 'nodejs' ) {
           let handlerParts = fun.handler.split('/').pop().split('.');
           let handlerPath = path.join(fun._config.fullPath, handlerParts[0] + '.js');
           let handler;
@@ -204,7 +204,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
                     Object.keys(endpoint.responses).forEach(key => {
                       if (!response && key != 'default' && JSON.stringify(err).match(key)) {
                         response = endpoint.responses[key];
-                      };
+                      }
                     });
 
                     result = {
@@ -241,19 +241,28 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
         SCli.log( "Serverless API Gateway simulator listening on http://localhost:" + _this.evt.port );
       });
     }
+    
+    _registerBabel() {
+      return new this.S.classes.Project(this.S).load().then(project => { // Promise to load project
+        const custom = project.custom['serverless-serve'];
+        
+        if (custom && custom.babelOptions) require("babel-register")(custom.babelOptions);
+      });
+    }
 
     serve(evt) {
       let _this = this;
 
       if (_this.S.cli) {
         evt = JSON.parse(JSON.stringify(this.S.cli.options));
-        if (_this.S.cli.options.nonInteractive) _this.S._interactive = false
+        if (_this.S.cli.options.nonInteractive) _this.S._interactive = false;
       }
 
       _this.evt = evt;
 
       return this.S.init()
         .bind(_this)
+        .then(_this._registerBabel)
         .then(_this._createApp)
         .then(_this._registerLambdas)
         .then(_this._tryInit)

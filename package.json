@@ -31,6 +31,7 @@
   },
   "homepage": "https://github.com/Nopik/serverless-serve#readme",
   "dependencies": {
+    "babel-register": "^6.5.2",
     "bluebird": "^3.0.6",
     "body-parser": "^1.14.1",
     "express": "^4.13.3"

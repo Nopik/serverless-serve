@@ -9,30 +9,21 @@ Installation
 In your Serverless project:
 
 ```
-cd plugins
-npm install --prefix=. serverless-serve
+npm install serverless-serve
 ```
 
 Then in `s-project.json` add following entry to `plugins` array:
 
 ```
-    {
-      "path": "serverless-serve"
-    }
+"serverless-serve"
 ```
 
 E.g. like this:
 ```
-  plugins: [
-    {
-      "path": "serverless-serve"
-    }
-  ]
+  plugins: ["serverless-serve"]
 ```
 
-Alternatively, you can install `serveress-serve` in some parent folder (e.g. your project root), and then use `{ "path": "../node_modules/serverless-serve" }` approach.
-
-And (in main project root, not in plugins or modules folder) do:
+And in main project root do:
 
 ```
 sls serve start
@@ -71,6 +62,27 @@ Usage
 Just send your requests to `http://localhost:1465/` as it would be API Gateway.
 
 Using of this plugin with some tool like Nodemon is advised, so Serverless with restart and reload your local code after every change.
+
+Usage with Babel
+================
+
+Optionnaly, your handlers can be required with `babel-register`.
+To do so, in your `s-project.json` file, set options to be passed to babel-register like this:
+```
+{
+  /* ... */
+  "custom": {
+    "serverless-serve": {
+      "babelOptions": {
+        /* Your own options, example: */
+        presets: ["es2015", "stage-2"]
+      }
+    }
+  },
+  "plugins": ["serverless-serve", /* ... */]
+}
+```
+To view the full list of babel-register options, click [here](https://babeljs.io/docs/usage/require/)
 
 Simulation quality
 ==================
