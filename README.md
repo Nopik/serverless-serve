@@ -66,7 +66,7 @@ Using of this plugin with some tool like Nodemon is advised, so Serverless with 
 Usage with Babel
 ================
 
-Optionnaly, your handlers can be required with `babel-register`.
+Optionaly, your handlers can be required with `babel-register`.
 To do so, in your `s-project.json` file, set options to be passed to babel-register like this:
 ```
 {
