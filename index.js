@@ -199,23 +199,25 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
                 }
                 handler(event, context( fun.name, function(err, result) {
                   let response;
+                  let errResult = result;
 
                   if (err) {
-                    Object.keys(endpoint.responses).forEach(key => {
-                      if (!response && key != 'default' && JSON.stringify(err).match(key)) {
-                        response = endpoint.responses[key];
-                      }
-                    });
+                    errResult = { errorMessage: err };
+                    err = err.toString();
+                  } else {
+                    err = '';
+                  };
 
-                    result = {
-                      errorMessage: err
-                    };
-                  }
+                  Object.keys(endpoint.responses).forEach(key => {
+                    if (!response && (key != 'default') && err.match(endpoint.responses[key].selectionPattern)) {
+                      response = endpoint.responses[key];
+                    }
+                  });
 
                   response = response || endpoint.responses['default'];
 
                   resolve(Object.assign({
-                    result: result
+                    result: errResult
                   }, response));
                 }));
               });
