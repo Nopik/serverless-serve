@@ -168,26 +168,21 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
 
               let result = new BbPromise(function(resolve, reject) {
 
-                let event = {};
-                let prop;
-
-                for( prop in req.body ) {
-                  if( req.body.hasOwnProperty( prop ) ){
-                    event[ prop ] = req.body[ prop ];
-                  }
-                }
-
-                for( prop in req.params ) {
-                  if( req.params.hasOwnProperty( prop ) ){
-                    event[ prop ] = req.params[ prop ];
-                  }
-                }
-
-                for( prop in req.query ) {
-                  if( req.query.hasOwnProperty( prop ) ){
-                    event[ prop ] = req.query[ prop ];
-                  }
-                }
+                const event = { 
+                  isServerlessServe: true,
+                  body: req.body,
+                  cookies: req.cookies,
+                  hostname: req.hostname,
+                  ip: req.ip,
+                  headers: req.headers,
+                  method: req.method,
+                  originalUrl: req.originalUrl,
+                  params: req.params,
+                  path: req.path,
+                  query: req.query,
+                  signedCookies: req.signedCookies,
+                  url: req.url,
+                };
 
                 if( !handler ) {
                   try {

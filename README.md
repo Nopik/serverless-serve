@@ -19,8 +19,8 @@ Then in `s-project.json` add following entry to `plugins` array:
 ```
 
 E.g. like this:
-```
-  plugins: ["serverless-serve"]
+```javascript
+  "plugins": ["serverless-serve"]
 ```
 
 And in main project root do:
@@ -40,7 +40,7 @@ Options
 - `Serverless` object
 - `app` object from Express (e.g. to register new routes)
 - `handlers` object being map of all function names to info about their respective handlers. Since all handlers are `require`'d lazily, this plugin exports only path information about handler, in following format:
-```
+```javascript
 {
   path: "path/to/be/required",
   handler: "exported-function-name"
@@ -51,8 +51,8 @@ so this should work: `require( handlers[ myFunName ].path )[ handlers[ myFunName
 
 Example:
 
-```
-module.exports = function(S, app, handlers){
+```javascript
+module.exports = function(S, app, handlers) {
 }
 ```
 
@@ -68,14 +68,14 @@ Usage with Babel
 
 Optionaly, your handlers can be required with `babel-register`.
 To do so, in your `s-project.json` file, set options to be passed to babel-register like this:
-```
+```javascript
 {
   /* ... */
   "custom": {
     "serverless-serve": {
       "babelOptions": {
         /* Your own options, example: */
-        presets: ["es2015", "stage-2"]
+        "presets": ["es2015", "stage-2"]
       }
     }
   },
@@ -83,6 +83,45 @@ To do so, in your `s-project.json` file, set options to be passed to babel-regis
 }
 ```
 To view the full list of babel-register options, click [here](https://babeljs.io/docs/usage/require/)
+
+The event object
+================
+
+When using the plugin, your handlers are called with a custom `event` object that offers the following properties from the `req` object of an express handler:
+
+```javascript
+const event = { 
+  isServerlessServe: true,
+  body: req.body, // Already parsed using body-parser
+  cookies: req.cookies,
+  hostname: req.hostname,
+  ip: req.ip,
+  headers: req.headers,
+  method: req.method,
+  originalUrl: req.originalUrl,
+  params: req.params,
+  path: req.path,
+  query: req.query,
+  signedCookies: req.signedCookies,
+  url: req.url,
+};
+```
+
+So in your handler you can do the following:
+
+```javascript
+module.exports.handler = function(event, context) {
+  var url;
+  
+  if (event.isServerlessServe) {
+    url = event.url;
+  } else {
+    /* Define your event object using a template in your s-function.json file */
+    url = event.customKeyDefinedInTemplate;
+  }
+};
+```
+Here are the [express's docs](http://expressjs.com/en/api.html#req) on the `req` object, and here are the [API Gateway's docs](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html) on templating.
 
 Simulation quality
 ==================
