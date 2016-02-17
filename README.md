@@ -36,7 +36,7 @@ Options
 
 `--port` `-P`: Port to listen on. Default: `1465`
 
-`--stage` `-s` & `--region` `-r`: If both are given, then endpoint response definition will get the template/variable resolved.
+`--stage` `-s` & `--region` `-r`: If both are given (or there is only 1 region and stage is given), then endpoint response definition will get the template/variable resolved.
 
 `--init` `-i`: Initialization file, for custom initializations. Default: empty. NOTE: please specify relative paths from project root folder, e.g. `sls serve start -i ./lib/my_init.js`. Init file should export single function taking following parameters:
 - `Serverless` object

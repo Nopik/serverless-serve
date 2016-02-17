@@ -218,8 +218,17 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
 
                   let responses = endpoint.responses;
 
-                  if( _this.evt.stage && _this.evt.region ){
-                    responses = endpoint.getPopulated({ stage: _this.evt.stage, region: _this.evt.region }).responses;
+                  if( _this.evt.stage ){
+                    if( !_this.evt.region ){
+                      let regions = Object.keys(_this.S.meta.stages[_this.evt.stage].regions);
+                      if( regions.length == 1 ){
+                        _this.evt.region = regions[ 0 ];
+                      };
+                    }
+
+                    if( _this.evt.region ){
+                      responses = endpoint.getPopulated({ stage: _this.evt.stage, region: _this.evt.region }).responses;
+                    }
                   }
 
                   Object.keys(responses).forEach(key => {
