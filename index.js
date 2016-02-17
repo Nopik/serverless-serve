@@ -35,6 +35,14 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
             option:      'port',
             shortcut:    'P',
             description: 'Optional - HTTP port to use, default: 1465'
+          }, {
+            option:      'stage',
+            shortcut:    's',
+            description: 'Optional - Serverless stage to use for resolving templates usage within s-function.json'
+          }, {
+            option:      'region',
+            shortcut:    'r',
+            description: 'Optional - Serverless region to use for resolving templates usage within s-function.json'
           }
         ]
       });
@@ -208,13 +216,19 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
                     err = '';
                   };
 
-                  Object.keys(endpoint.responses).forEach(key => {
-                    if (!response && (key != 'default') && err.match(endpoint.responses[key].selectionPattern)) {
-                      response = endpoint.responses[key];
+                  let responses = endpoint.responses;
+
+                  if( _this.evt.stage && _this.evt.region ){
+                    responses = endpoint.getPopulated({ stage: _this.evt.stage, region: _this.evt.region }).responses;
+                  }
+
+                  Object.keys(responses).forEach(key => {
+                    if (!response && (key != 'default') && err.match(responses[key].selectionPattern)) {
+                      response = responses[key];
                     }
                   });
 
-                  response = response || endpoint.responses['default'];
+                  response = response || responses['default'];
 
                   resolve(Object.assign({
                     result: errResult
@@ -247,7 +261,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
     _registerBabel() {
       return new this.S.classes.Project(this.S).load().then(project => { // Promise to load project
         const custom = project.custom['serverless-serve'];
-        
+
         if (custom && custom.babelOptions) require("babel-register")(custom.babelOptions);
       });
     }
