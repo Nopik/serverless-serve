@@ -95,7 +95,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
 
     _registerLambdas() {
       let _this = this;
-      let functions = this.S.state.getFunctions();
+      let functions = this.S.getProject().getAllFunctions();
 
       _this.handlers = {};
 
@@ -126,9 +126,9 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
              responses: [Object] } ] }
        */
 
-        if( fun.getRuntime() == 'nodejs' ) {
+        if( fun.getRuntime().getName() == 'nodejs' ) {
           let handlerParts = fun.handler.split('/').pop().split('.');
-          let handlerPath = path.join(fun._config.fullPath, handlerParts[0] + '.js');
+          let handlerPath = path.join(fun.getFullPath(), handlerParts[0] + '.js');
           let handler;
 
           _this.handlers[ fun.handler ] = {
@@ -245,10 +245,11 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
     }
     
     _registerBabel() {
-      return new this.S.classes.Project(this.S).load().then(project => { // Promise to load project
-        const custom = project.custom['serverless-serve'];
-        
-        if (custom && custom.babelOptions) require("babel-register")(custom.babelOptions);
+      return BbPromise.try(function(){
+        let project = this.S.getProject();
+        const custom = project.custom[ 'serverless-serve' ];
+
+        if( custom && custom.babelOptions ) require("babel-register")( custom.babelOptions );
       });
     }
 
