@@ -220,7 +220,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
 
                   if( _this.evt.stage ){
                     if( !_this.evt.region ){
-                      let regions = Object.keys(_this.S.meta.stages[_this.evt.stage].regions);
+                      let regions = Object.keys(_this.S.state.getMeta().stages[_this.evt.stage].regions);
                       if( regions.length == 1 ){
                         _this.evt.region = regions[ 0 ];
                       };
