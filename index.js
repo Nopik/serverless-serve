@@ -232,7 +232,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
                   }
 
                   Object.keys(responses).forEach(key => {
-                    if (!response && (key != 'default') && err.match(responses[key].selectionPattern)) {
+                    if (!response && (key != 'default') && responses[key].selectionPattern && err.match(responses[key].selectionPattern)) {
                       response = responses[key];
                     }
                   });
