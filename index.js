@@ -1,23 +1,20 @@
 'use strict';
 
-module.exports = function(ServerlessPlugin, serverlessPath) {
+module.exports = function(S) {
   const path = require( 'path' ),
-  SUtils = require( path.join( serverlessPath, 'utils' ) ),
-  context = require( path.join( serverlessPath, 'utils', 'context' ) ),
-  SCli = require( path.join( serverlessPath, 'utils', 'cli' ) ),
+  SUtils = require(S.getServerlessPath('utils')),
+  context = require(S.getServerlessPath('utils/context')),
+  SCli = require(S.getServerlessPath('utils/cli')),
   express = require('express'),
   bodyParser = require('body-parser'),
   BbPromise = require( 'bluebird' );
 
-  class Serve extends ServerlessPlugin {
-    constructor(S) {
-      super(S);
-    }
+  class Serve extends S.classes.Plugin {
     static getName() {
       return 'net.nopik.' + Serve.name;
     }
     registerActions() {
-      this.S.addAction(this.serve.bind(this), {
+      S.addAction(this.serve.bind(this), {
         handler:       'serve',
         description:   `Exposes all lambdas as local HTTP, simulating API Gateway functionality`,
         context:       'serve',
@@ -97,13 +94,13 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
     _tryInit() {
       if( this.evt.init ){
         let handler = require( path.join( process.cwd(), this.evt.init ) );
-        return( handler( this.S, this.app, this.handlers ) );
+        return( handler( S, this.app, this.handlers ) );
       }
     }
 
     _registerLambdas() {
       let _this = this;
-      let functions = this.S.getProject().getAllFunctions();
+      let functions = S.getProject().getAllFunctions();
 
       _this.handlers = {};
 
@@ -136,7 +133,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
 
         if( fun.getRuntime().getName() == 'nodejs' ) {
           let handlerParts = fun.handler.split('/').pop().split('.');
-          let handlerPath = path.join(fun.getFullPath(), handlerParts[0] + '.js');
+          let handlerPath = path.join(fun.getRootPath(), handlerParts[0] + '.js');
           let handler;
 
           _this.handlers[ fun.handler ] = {
@@ -220,7 +217,7 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
 
                   if( _this.evt.stage ){
                     if( !_this.evt.region ){
-                      let regions = Object.keys(_this.S.state.getMeta().stages[_this.evt.stage].regions);
+                      let regions = Object.keys(S.state.getMeta().stages[_this.evt.stage].regions);
                       if( regions.length == 1 ){
                         _this.evt.region = regions[ 0 ];
                       };
@@ -266,11 +263,11 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
         SCli.log( "Serverless API Gateway simulator listening on http://localhost:" + _this.evt.port );
       });
     }
-    
+
     _registerBabel() {
       let _this = this;
       return BbPromise.try(function(){
-        let project = _this.S.getProject();
+        let project = S.getProject();
         const custom = project.custom[ 'serverless-serve' ];
 
         if( custom && custom.babelOptions ) require("babel-register")( custom.babelOptions );
@@ -280,14 +277,14 @@ module.exports = function(ServerlessPlugin, serverlessPath) {
     serve(evt) {
       let _this = this;
 
-      if (_this.S.cli) {
-        evt = JSON.parse(JSON.stringify(this.S.cli.options));
-        if (_this.S.cli.options.nonInteractive) _this.S._interactive = false;
+      if (S.cli) {
+        evt = JSON.parse(JSON.stringify(S.cli.options));
+        if (S.cli.options.nonInteractive) S._interactive = false;
       }
 
       _this.evt = evt;
 
-      return this.S.init()
+      return S.init()
         .bind(_this)
         .then(_this._registerBabel)
         .then(_this._createApp)
