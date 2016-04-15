@@ -2,8 +2,6 @@
 
 module.exports = function(S) {
   const path = require( 'path' ),
-  SUtils = require(S.getServerlessPath('utils')),
-  context = require(S.getServerlessPath('utils/context')),
   SCli = require(S.getServerlessPath('utils/cli')),
   express = require('express'),
   bodyParser = require('body-parser'),
@@ -105,42 +103,10 @@ module.exports = function(S) {
       _this.handlers = {};
 
       return functions.forEach(function(fun) {
-        /*
-        _config:
-          { component: 'node',
-            module: 'homepage',
-            function: 'index',
-            sPath: 'node/homepage/index',
-            fullPath: '/path/to/some/serverless/project/node/homepage/index' },
-        name: 'index',
-        handler: 'homepage/index/handler.handler',
-        runtime: 'nodejs',
-        timeout: 6,
-        memorySize: 1024,
-        custom: { excludePatterns: [], envVars: [] },
-        endpoints:
-         [ ServerlessEndpoint {
-             _S: [Object],
-             _config: [Object],
-             path: 'homepage/index',
-             method: 'GET',
-             authorizationType: 'none',
-             apiKeyRequired: false,
-             requestParameters: {},
-             requestTemplates: [Object],
-             responses: [Object] } ] }
-       */
-
         if( fun.getRuntime().getName() == 'nodejs' ) {
-          let handlerParts = fun.handler.split('/').pop().split('.');
-          let handlerPath = path.join(fun.getRootPath(), handlerParts[0] + '.js');
-          let handler;
-
-          _this.handlers[ fun.handler ] = {
-            path: handlerPath,
-            handler: handlerParts[ 1 ],
-            definition: fun
-          };
+          // Override s-function.json defined environment!
+          Object.getPrototypeOf( fun.getRuntime() ).getEnvVars = ()=> BbPromise.resolve( {} );
+          _this.handlers[ fun.name ] = fun;
 
           fun.endpoints.forEach(function(endpoint){
             let epath = endpoint.path;
@@ -194,56 +160,37 @@ module.exports = function(S) {
                   }
                 }
 
-                if( !handler ) {
-                  try {
-                    handler = require( handlerPath )[handlerParts[1]];
-                  } catch( e ) {
-                    SCli.log( "Unable to load " + handlerPath + ": " + e );
-                    throw e ;
-                  }
-                }
-                handler(event, context( fun.name, function(err, result) {
+                let responses = ( _this.evt.stage && _this.evt.region )
+                    ? endpoint.toObjectPopulated({ stage: _this.evt.stage, region: _this.evt.region }).responses
+                    : endpoint.responses;
+
+                function findResponse( str ){
                   let response;
-                  let errResult = result;
-
-                  if (err) {
-                    errResult = { errorMessage: err };
-                    err = err.toString();
-                  } else {
-                    err = '';
-                  };
-
-                  let responses = endpoint.responses;
-
-                  if( _this.evt.stage ){
-                    if( !_this.evt.region ){
-                      let regions = Object.keys(S.state.getMeta().stages[_this.evt.stage].regions);
-                      if( regions.length == 1 ){
-                        _this.evt.region = regions[ 0 ];
-                      };
-                    }
-
-                    if( _this.evt.region ){
-                      responses = endpoint.getPopulated({ stage: _this.evt.stage, region: _this.evt.region }).responses;
-                    }
-                  }
-
                   Object.keys(responses).forEach(key => {
-                    if (!response && (key != 'default') && responses[key].selectionPattern && err.match(responses[key].selectionPattern)) {
+                    if (!response && (key != 'default') && responses[key].selectionPattern && str.match(responses[key].selectionPattern)) {
                       response = responses[key];
                     }
                   });
+                  return response || responses['default'];
+                }
 
-                  response = response || responses['default'];
-
+                fun.run( _this.evt.stage, _this.evt.region, event ).then( (res)=> {
+                  if( res.status == 'success' ) {
+                    resolve(Object.assign({
+                      result: res.response
+                    }, findResponse('') ));
+                  } else {
+                    return BbPromise.reject( res.error );
+                  }
+                } ).catch( (err)=> {
                   resolve(Object.assign({
-                    result: errResult
-                  }, response));
-                }));
+                    result: { errorMessage: err }
+                  }, findResponse( err.toString() ) ));
+                } );
               });
 
               result.then(function(r){
-                SCli.log(`[${r.statusCode}] ${JSON.stringify(r.result, null, 4)}`);
+                //SCli.log(`[${r.statusCode}] ${JSON.stringify(r.result, null, 4)}`);
                 res.status(r.statusCode);
                 res.send(r.result);
               }, function(err){
@@ -277,12 +224,16 @@ module.exports = function(S) {
     serve(evt) {
       let _this = this;
 
-      if (S.cli) {
-        evt = JSON.parse(JSON.stringify(S.cli.options));
-        if (S.cli.options.nonInteractive) S._interactive = false;
-      }
+      _this.evt = evt.options;
 
-      _this.evt = evt;
+      if( _this.evt.nonInteractive ) S._interactive = false;
+
+      if( _this.evt.stage && !_this.evt.region ){
+        let regions = S.getProject().getStage( _this.evt.stage ).getAllRegions();
+        if( regions.length == 1 ){
+          _this.evt.region = regions[ 0 ].getName();
+          };
+        }
 
       return S.init()
         .bind(_this)
