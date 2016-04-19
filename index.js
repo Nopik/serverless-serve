@@ -103,7 +103,7 @@ module.exports = function(S) {
       _this.handlers = {};
 
       return functions.forEach(function(fun) {
-        if( fun.getRuntime().getName() == 'nodejs' ) {
+        if( -1 !== fun.getRuntime().getName().indexOf('nodejs') ) {
           // Override s-function.json defined environment!
           Object.getPrototypeOf( fun.getRuntime() ).getEnvVars = ()=> BbPromise.resolve( {} );
           _this.handlers[ fun.name ] = fun;
