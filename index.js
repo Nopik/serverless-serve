@@ -104,8 +104,6 @@ module.exports = function(S) {
 
       return functions.forEach(function(fun) {
         if( -1 !== fun.getRuntime().getName().indexOf('nodejs') ) {
-          // Override s-function.json defined environment!
-          Object.getPrototypeOf( fun.getRuntime() ).getEnvVars = ()=> BbPromise.resolve( {} );
           _this.handlers[ fun.name ] = fun;
 
           fun.endpoints.forEach(function(endpoint){
@@ -174,7 +172,8 @@ module.exports = function(S) {
                   return response || responses['default'];
                 }
 
-                fun.run( _this.evt.stage, _this.evt.region, event ).then( (res)=> {
+                let runtime = fun.getRuntime();
+                runtime.run(fun,  _this.evt.stage, _this.evt.region, event).then( (res)=> {
                   if( res.status == 'success' ) {
                     resolve(Object.assign({
                       result: res.response
